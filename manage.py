@@ -4,6 +4,7 @@ from app import create_app, db
 from app.auth.models import User, Role
 from flask_script import Manager, Shell
 from flask_migrate import Migrate, MigrateCommand
+from flask_mail import Mail
 
 app = create_app(os.getenv('FLASK_CONFIG') or 'deafult')
 manager = Manager(app)
