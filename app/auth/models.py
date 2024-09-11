@@ -1,8 +1,8 @@
 from flask import current_app
 from .. import db
-from . import bcrypt
+from . import bcrypt, AnonymousUserMixin
 from itsdangerous import TimedSerializer as Serializer
-from flask_login import UserMixin, AnonymousUserMixin
+from flask_login import UserMixin
 
 roles = db.Table(
     'role_users',
@@ -17,6 +17,15 @@ class User(UserMixin ,db.Model):
     password = db.Column(db.String(255), nullable=False)
     confirmed = db.Column(db.Boolean, default=False)
     roles = db.relationship('Role', secondary=roles, backref='user',  lazy='dynamic')
+
+    def __init__(self, username=""):
+        default = Role.query.filter_by(name="default").one()
+        self.roles.append(default)
+        self.username = username
+
+    def __repr__(self):
+        return '<User{}>'.format(self.username)
+
 
     @property
     def password(self):
@@ -49,9 +58,9 @@ class User(UserMixin ,db.Model):
     @property
     def is_authenticated(self):
         if isinstance(self, AnonymousUserMixin):
-            return True
-        else:
             return False
+        else:
+            return True
     
     @property
     def is_active(self):
