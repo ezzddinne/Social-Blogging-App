@@ -1,10 +1,12 @@
-from flask import Blueprint, current_app, render_template, flash, redirect, url_for
-from .models import Post, Tag, tags
+import datetime
+from flask import Blueprint, current_app, render_template, flash, redirect, url_for, abort
+from .models import Post, Tag, tags, Comment
+from ..auth.models import User
 from flask_login import login_required, current_user
 from .. import db
 from sqlalchemy import desc, func
 from ..auth import has_role
-from .forms import PostForm
+from .forms import PostForm, CommentForm
 
 blog_blueprint = Blueprint(
     'blog',
@@ -45,3 +47,81 @@ def new_post():
         return redirect(url_for('.post', post_id=new_post.id))
     return render_template('new.html', form=form)
 
+@blog_blueprint.route('/edit/<int:id>', methods=['GET', 'POST'])
+def edit_post(id):
+    post = Post.query.get_or_404(id)
+    if current_user.id == post.user.id:
+        form = PostForm()
+        if form.validate_on_submit():
+            post.title = form.title.data
+            post.text = form.text.data
+            post.publish_date = datetime.datetime.now()
+            db.session.add(post)
+            db.session.commit()
+            return redirect(url_for('.post', post_id=post.id))
+        form.title.data = post.title
+        form.text.data = post.text
+        return render_template('edit.html', form=form, post=post)
+    abort(403)
+
+@blog_blueprint.route('/post/<int:post_id>', methods=['GET', 'POST'])
+def post(post_id):
+    form = CommentForm()
+
+    if form.validate_on_submit():
+        new_comment = Comment()
+        new_comment.name = form.name.data
+        new_comment.text = form.text.data
+        new_comment.post_id = post_id
+        try:
+            db.session.add(new_comment)
+            db.session.commit()
+        except Exception as e:
+            flash('Error adding your comment: %s' %str(e), 'error')
+            db.session.rollback()
+        else:
+            flash
+            ('Comment added', 'info')
+        return redirect(url_for('blog.post', post_id=post_id))
+    post = Post.query.get_or_404(post_id)
+    tags = post.tags
+    comments = post.comments.order_by(Comment.date.desc()).all()
+    recent, top_tags = sidebar_data()
+
+    return render_template(
+        'post.html',
+        post=post,
+        tags=tags,
+        comments=comments,
+        recent=recent,
+        top_tags=top_tags,
+        form=form
+    )
+
+@blog_blueprint.route('/tag/<string:tag_name>')
+def posts_by_tag(tag_name):
+    tag = Tag.query.filter_by(tag_name=tag_name).first_or_404()
+    posts = tag.posts.order_by(Post.publish_date.desc()).all()
+    recent, top_tags = sidebar_data()
+
+    return render_template(
+        'tag.html',
+        tag=tag,
+        posts=posts,
+        recent=recent,
+        top_tags=top_tags
+    )
+
+@blog_blueprint.route('/user/<string:username>')
+def post_by_user(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    posts = user.posts.order_by(Post.publish_date.desc()).all()
+    recent, top_tags = sidebar_data()
+
+    return render_template(
+        'user.html',
+        user=user,
+        posts=posts,
+        recent=recent,
+        top_tags=top_tags
+    )
