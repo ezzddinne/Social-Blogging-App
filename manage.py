@@ -1,31 +1,13 @@
-#!/usr/bin/env python
 import os
-from app import create_app, db
-from app.auth.models import User, Role
-from flask_script import Manager, Shell
-from flask_migrate import Migrate, MigrateCommand
-from flask_mail import Mail
+from app import db, migrate, create_app
+from app.auth.models import User
+from app.blog.models import Post, Tag
 
-app = create_app(os.getenv('FLASK_CONFIG') or 'deafult')
-manager = Manager(app)
-migrate = Migrate(app, db)
 
-# Automatic import for this variables (app, db, user, role)
+env = os.environ.get('WEBAPP_ENV', 'dev')
+app = create_app('config.%sConfig' % env.capitalize())
+
+
+@app.shell_context_processor
 def make_shell_context():
-    return dict(app=app, db=db, User=User, Role=Role)
-
-manager.add_command("shell", Shell(make_context=make_shell_context))
-# Automatic database migration(falsk db init ...)
-manager.add_command('db', MigrateCommand)
-
-@manager.command
-def test():
-    """Run the unit tests."""
-    import unittest
-    # discover all the files in the test directory 
-    tests = unittest.TestLoader().discover('tests')
-    unittest.TextTestRunner(verbosity=2).run(tests)
-
-
-if __name__ == '__main__':
-    manager.run()
+    return dict(app=app, db=db, User=User, Post=Post, Tag=Tag, migrate=migrate)

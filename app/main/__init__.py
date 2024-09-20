@@ -1,5 +1,3 @@
-from flask import Blueprint
-
-main = Blueprint('main', __name__)
-
-from . import controllers, errors
+def create_module(app, **kwargs):
+    from .controllers import main_blueprint
+    app.register_blueprint(main_blueprint)

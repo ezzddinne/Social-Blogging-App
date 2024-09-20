@@ -48,8 +48,8 @@ def create_module(app, **kwargs):
     app.register_blueprint(google_blueprint, url_prefix="/auth/login")
 
     reddit_blueprint=make_reddit_blueprint(
-        client_id=app.config.get(" REDDIT_OAUTH_CLIENT_ID"),
-        client_secret=app.config.get("EDDIT_OAUTH_CLIENT_SECRET")
+        client_id=app.config.get("REDDIT_OAUTH_CLIENT_ID"),
+        client_secret=app.config.get("REDDIT_OAUTH_CLIENT_SECRET")
     )
     app.register_blueprint(reddit_blueprint, url_prefix="/auth/login")
 
